@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package async.v1;
+
+message EchoRequest { uint32 id = 1; }
+
+message EchoResponse { uint32 id = 1; }
+
+service Async {
+  rpc Echo(EchoRequest) returns (EchoResponse) {}
+}
