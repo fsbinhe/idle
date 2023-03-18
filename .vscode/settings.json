@@ -1,1 +1,33 @@
-{}
+{
+  "files.associations": {
+    "*.js": "javascriptreact",
+    "*.S": "nasm",
+    "*.inc": "nasm",
+    "*.bk": "nasm",
+    "*.php": "php",
+    "iostream": "cpp",
+    "array": "cpp",
+    "atomic": "cpp",
+    "hash_map": "cpp",
+    "hash_set": "cpp",
+    "deque": "cpp",
+    "list": "cpp",
+    "string": "cpp",
+    "unordered_map": "cpp",
+    "unordered_set": "cpp",
+    "vector": "cpp",
+    "iterator": "cpp",
+    "memory_resource": "cpp",
+    "optional": "cpp",
+    "string_view": "cpp",
+    "initializer_list": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp",
+    "*.tcc": "cpp",
+    "functional": "cpp",
+    "algorithm": "cpp",
+    "memory": "cpp",
+    "numeric": "cpp",
+    "variant": "cpp"
+  }
+}

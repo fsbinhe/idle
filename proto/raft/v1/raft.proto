@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package raft.v1;
+
+message VoteRequest {
+  int64 term = 1;
+  string candidate = 2;
+  int64 last_log_index = 3;
+  int64 last_log_term = 4;
+}
+
+message VoteResponse {
+  int64 term = 1;
+  bool vote_granted = 2;
+}
+
+enum LogType {
+  kUserLog = 0;
+  kRaftCmd = 1;
+}
+
+message LogEntry {
+  int64 index = 2;
+  int64 term = 3;
+  bytes log_data = 4;
+  LogType type = 5;
+}
+
+message AppendEntriesRequest {
+  int64 term = 2;
+  string leader = 3;
+  int64 prev_log_index = 4;
+  int64 prev_log_term = 5;
+  LogEntry entries = 6;
+  int64 leader_commit = 7;
+}
+
+message AppendEntriesResponse {
+  int64 term = 2;
+  bool success = 3;
+}
+/*
+  Raft Protocol Implementation:
+    - Leader Election
+    - Log Replication
+    - Safty
+    - Log Compaction
+    - Membership Change
+
+  3 roles in raft cluster:
+    - Leader: Receives client requests, and sync logs to Followers
+    - Follwer: Receives Leader's requests to sync logs, mainly follow Leader's
+  commands
+    - Candidate: Temporary State When Leader Election
+
+  In any term, there is only one Leader
+*/
+service Raft {
+  rpc Vote(VoteRequest) returns (VoteResponse) {}
+  rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse) {}
+}

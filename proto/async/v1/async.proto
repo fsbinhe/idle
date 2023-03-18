@@ -2,10 +2,20 @@ syntax = "proto3";
 
 package async.v1;
 
-message EchoRequest { uint32 id = 1; }
+message CreateTaskRequest {
+  uint32 handler_id = 1;
+  map<string, string> header = 2;
+  bytes body = 3;
+}
 
-message EchoResponse { uint32 id = 1; }
+message CreateTaskResponse {
+  uint32 error_code = 1;
+  string message = 2;
+  string id = 3;
+}
+
+message RegisterTaskHandleResponse {}
 
 service Async {
-  rpc Echo(EchoRequest) returns (EchoResponse) {}
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse) {}
 }
