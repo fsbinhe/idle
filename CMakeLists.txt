@@ -17,36 +17,38 @@ find_package(gRPC CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(leveldb CONFIG REQUIRED)
 find_package(folly CONFIG REQUIRED)
+find_package(proxygen CONFIG REQUIRED)
+find_package(zstd CONFIG REQUIRED)
 
 # Enable proto
 add_subdirectory(proto)
 add_subdirectory(client)
-
-# find_package(LLVM CONFIG REQUIRED)
-find_package(proxygen CONFIG REQUIRED)
-
-find_package(zstd CONFIG REQUIRED)
+add_subdirectory(src)
 
 
-# list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-# include(HandleLLVMOptions)
-# add_definitions(${LLVM_DEFINITIONS})
+add_executable(asyncd src/asyncd.cc)
+target_link_libraries(asyncd PRIVATE hash)
+target_link_libraries(asyncd PRIVATE glog::glog)
+target_link_libraries(asyncd PRIVATE gflags::gflags)
+target_link_libraries(asyncd PRIVATE gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
+target_link_libraries(asyncd PRIVATE asyncproto)
+target_link_libraries(asyncd PRIVATE fmt::fmt)
+target_link_libraries(asyncd PRIVATE leveldb::leveldb)
+target_link_libraries(asyncd PRIVATE Folly::folly Folly::folly_deps Folly::follybenchmark Folly::folly_test_util)
+target_link_libraries(asyncd PRIVATE proxygen::proxygen proxygen::proxygencurl proxygen::proxygenhttpserver)
+target_link_libraries(asyncd PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
 
-# target_include_directories(main PRIVATE ${LLVM_INCLUDE_DIRS})
 
-# # Find the libraries that correspond to the LLVM components that we wish to use
-# llvm_map_components_to_libnames(llvm_libs Support Core IRReader ...)
 
-# # Link against LLVM libraries
-# target_link_libraries(main PRIVATE ${llvm_libs})
-
-add_executable(idle src/asyncd.cc)
-target_link_libraries(idle PRIVATE glog::glog)
-target_link_libraries(idle PRIVATE gflags::gflags)
-target_link_libraries(idle PRIVATE gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
-target_link_libraries(idle PRIVATE asyncproto)
-target_link_libraries(idle PRIVATE fmt::fmt)
-target_link_libraries(idle PRIVATE leveldb::leveldb)
-target_link_libraries(idle PRIVATE Folly::folly Folly::folly_deps Folly::follybenchmark Folly::folly_test_util)
-target_link_libraries(idle PRIVATE proxygen::proxygen proxygen::proxygencurl proxygen::proxygenhttpserver)
-target_link_libraries(idle PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)
+add_executable(raftd src/raftd.cc)
+target_link_libraries(raftd PRIVATE libraft)
+target_link_libraries(raftd PRIVATE hash)
+target_link_libraries(raftd PRIVATE glog::glog)
+target_link_libraries(raftd PRIVATE gflags::gflags)
+target_link_libraries(raftd PRIVATE gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
+target_link_libraries(raftd PRIVATE asyncproto)
+target_link_libraries(raftd PRIVATE fmt::fmt)
+target_link_libraries(raftd PRIVATE leveldb::leveldb)
+target_link_libraries(raftd PRIVATE Folly::folly Folly::folly_deps Folly::follybenchmark Folly::folly_test_util)
+target_link_libraries(raftd PRIVATE proxygen::proxygen proxygen::proxygencurl proxygen::proxygenhttpserver)
+target_link_libraries(raftd PRIVATE $<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>)

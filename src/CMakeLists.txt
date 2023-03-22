@@ -1,5 +1,5 @@
+add_subdirectory(common)
 
-set(SOURCES internal/application.cc)
+add_subdirectory(concurrency)
 
-add_executable(async ${SOURCES})
-target_link_libraries(async PRIVATE asyncproto raftproto)
+add_subdirectory(raft)
