@@ -9,6 +9,7 @@ target_link_libraries(libraft glog::glog)
 
 add_executable(raft_storage_test raft_storage_test.cc)
 target_link_libraries(raft_storage_test GTest::gtest_main)
+target_link_libraries(raft_storage_test libraft)
 
 include(GoogleTest)
 gtest_discover_tests(raft_storage_test)

@@ -215,5 +215,188 @@ namespace idle
         return true;
       }
     }
-  }
-}
+
+    void LogDB::EncodeMarker(const MarkerEntry &marker, std::string *data)
+    {
+      int klen = (marker.key_).length();
+      int vlen = (marker.val_).length();
+      data->append(reinterpret_cast<char *>(&klen), sizeof(klen));
+      data->append(marker.key_);
+      data->append(reinterpret_cast<char *>(&vlen), sizeof(vlen));
+      data->append(marker.val_);
+    }
+
+    StatusCode LogDB::WriteMarkerNoLock(const std::string &key, const std::string &value)
+    {
+      if (marker_log_ == nullptr)
+      {
+        marker_log_ = fopen((dbpath_ + "marker.mak").c_str(), "a");
+        if (marker_log_ == nullptr)
+        {
+          LOG(WARNING) << "[raftd] WriteMarkerNoLock open marker.mak failed errormsg = " << strerror(errno);
+          return kWriteError;
+        }
+      }
+
+      std::string data;
+      uint32_t len = 4 + key.length() + 4 + value.length();
+      data.append(reinterpret_cast<char *>(&len), sizeof(len));
+      EncodeMarker(MarkerEntry(key, value), &data);
+      if (fwrite(data.c_str(), 1, data.length(), marker_log_) != data.length() || fflush(marker_log_) != 0)
+      {
+        LOG(WARNING) << "[raftd] WriterMarkerNoLock failed key = " << key << " value = " << value;
+        return kWriteError;
+      }
+
+      fflush(marker_log_);
+      markers_[key] = value;
+      return kOK;
+    }
+
+    StatusCode LogDB::WriteMarker(const std::string &key, const std::string &value)
+    {
+      std::lock_guard<std::mutex> l(mu_);
+      return WriteMarkerNoLock(key, value);
+    }
+
+    StatusCode LogDB::WriteMarker(const std::string &key, int64_t value)
+    {
+      return WriteMarker(key, std::string(reinterpret_cast<char *>(&value), sizeof(value)));
+    }
+
+    StatusCode LogDB::ReadMarker(const std::string &key, std::string *value)
+    {
+      std::lock_guard<std::mutex> l(mu_);
+      std::map<std::string, std::string>::iterator it = markers_.find(key);
+      if (it == markers_.end())
+      {
+        return kNotFound;
+      }
+      *value = it->second;
+      return kOK;
+    }
+
+    StatusCode LogDB::ReadMarker(const std::string &key, int64_t *value)
+    {
+      std::lock_guard<std::mutex> l(mu_);
+      std::string v;
+      auto status = ReadMarker(key, &v);
+      if (status != kOK)
+      {
+        return status;
+      }
+      memcpy(value, &(v[0]), 8);
+      return kOK;
+    }
+
+    StatusCode LogDB::GetLargestIndex(int64_t *value)
+    {
+      std::lock_guard<std::mutex> l(mu_);
+      if (smallest_index_ == next_index_)
+      {
+        *value = -1;
+        return kNotFound;
+      }
+      *value = next_index_ - 1;
+      return kOK;
+    }
+
+    void LogDB::FormLogName(int64_t index, std::string *log_name, std::string *idx_name)
+    {
+      log_name->clear();
+      log_name->append(dbpath_);
+      log_name->append(std::to_string(index));
+      log_name->append(".log");
+
+      idx_name->clear();
+      idx_name->append(dbpath_);
+      idx_name->append(std::to_string(index));
+      idx_name->append(".idx");
+    }
+
+    StatusCode LogDB::DeleteUpTo(int64_t index)
+    {
+      if (index < smallest_index_)
+      {
+        return kOK;
+      }
+
+      if (index >= next_index_)
+      {
+        LOG(INFO) << "[raftd] DeleteUpTo over limit index = " << index << " next_index_ = " << next_index_;
+        return kBadParemeter;
+      }
+
+      std::lock_guard<std::mutex> l(mu_);
+      smallest_index_ = index + 1;
+      WriteMarkerNoLock(".smallest_index_", std::to_string(smallest_index_));
+      FileCache::reverse_iterator upto = read_log_.rbegin();
+      while (upto != read_log_.rend())
+      {
+        if (upto->first <= index)
+        {
+          break;
+        }
+        ++upto;
+      }
+      if (upto == read_log_.rend())
+      {
+        return kOK;
+      }
+      int64_t upto_index = upto->first;
+      FileCache::iterator it = read_log_.begin();
+      while (it->first != upto_index)
+      {
+        std::string log_name, idx_name;
+        FormLogName(it->first, &log_name, &idx_name);
+        if (!RemoveFile((it->second).first, log_name) || !RemoveFile((it->second).second, idx_name))
+        {
+          return kWriteError;
+        }
+        read_log_.erase(it++);
+      }
+      LOG(INFO) << "[raftd] DeleteUpTo done smallest_index_ = " << smallest_index_ << " next_index_ = " << next_index_;
+      return kOK;
+    }
+
+    bool LogDB::CloseFile(FILE *fp, const std::string &name)
+    {
+      if (!fp)
+      {
+        return true;
+      }
+
+      if (fclose(fp) != 0)
+      {
+        LOG(ERROR) << "[raftd] CloseFile failed errormsg = " << strerror(errno);
+        return false;
+      }
+
+      LOG(DEBUG) << "[raftd] CloseFile file = " << name;
+      return true;
+    }
+
+    bool LogDB::OpenFile(FILE **fp, const std::string &name, const char *mode)
+    {
+      *fp = fopen(name.c_str(), mode);
+      if (*fp == nullptr)
+      {
+        LOG(ERROR) << "[raftd] OpenFile failed errormsg = " << strerror(errno);
+        return false;
+      }
+      LOG(DEBUG) << "[raftd] OpenFile file = " << name;
+      return true;
+    }
+
+    bool LogDB::RemoveFile(const std::string &name)
+    {
+      if (remove(name.c_str()) != 0)
+      {
+        LOG(WARN) << "[raftd] RemoveFile failed errormsg = " << strerror(errno);
+        return false;
+      }
+      LOG(DEBUG) << "[raftd] RemoveFile file = " << name;
+      return true;
+    }
+  } // namespace distributed
+} // namespace baidu;
