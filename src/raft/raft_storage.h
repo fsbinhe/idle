@@ -30,13 +30,25 @@ enum StatusCode {
   kReadError = 4,
 };
 
+// LogDB contains three kinds of files
+// 1. marker: which is used to record the last successful write, when BFS
+// restarts, it will use marker file to recover.
+// 2. log: which is used to record log content.
+// 3. index: which is used to record log's position to increase the speed to
+// read.
 class LogDB {
 public:
   LogDB();
   ~LogDB();
-
+  // Open
+  // @param path: the database file path
+  // @param option: the option that is used to customise the Open behaviour
+  // @param dbptr: the database handle for users to use
   static void Open(const std::string &path, const Option &option,
                    LogDB **dbptr);
+
+  // DestroyDB
+  // @param path: the database file path
   static StatusCode DestroyDB(const std::string &path);
 
   StatusCode Write(int64_t index, const std::string &entry);
@@ -51,6 +63,7 @@ public:
   StatusCode ReadMarker(const std::string &key, int64_t *value);
   StatusCode ReadIndex(FILE *fp, int64_t expect_index, int64_t *index,
                        int64_t *offset);
+
   int ReadOne(FILE *fp, std::string *data);
 
   StatusCode GetLargestIndex(int64_t *value);
@@ -63,7 +76,10 @@ private:
   bool CheckLogIndex();
   void WriteMarkerSnapshot();
   void CloseCurrent();
+
   void EncodeMarker(const MarkerEntry &marker, std::string *data);
+  void DecodeMarker(const std::string &data, MarkerEntry *marker);
+
   bool NewWriteLog(int64_t index);
   void FormLogName(int64_t index, std::string *log_name, std::string *idx_name);
 

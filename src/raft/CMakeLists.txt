@@ -5,6 +5,7 @@ add_library(libraft raft_node.cc raft_storage.cc)
 target_link_libraries(libraft raftproto)
 target_link_libraries(libraft gRPC::gpr gRPC::grpc gRPC::grpc++ gRPC::grpc++_alts)
 target_link_libraries(libraft glog::glog)
+target_link_libraries(libraft libconcurrency)
 
 
 add_executable(raft_storage_test raft_storage_test.cc)

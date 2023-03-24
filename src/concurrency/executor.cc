@@ -1,14 +1,12 @@
 #include "executor.h"
 
-namespace idle
-{
-  namespace concurrency
-  {
-    Executor::Executor() : thread_num_(10), pending_num_(0) {}
+namespace idle {
+namespace concurrency {
+Executor::Executor() : thread_num_(10), pending_num_(0) {}
 
-    Executor::~Executor() {}
+Executor::~Executor() {}
 
-    void Executor::Start() {}
-  }
+void Executor::Start() {}
+} // namespace concurrency
 
-}
+} // namespace idle
