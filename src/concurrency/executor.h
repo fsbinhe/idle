@@ -1,11 +1,13 @@
 #pragma once
 
+#include "blocking_queue.h"
 #include <condition_variable>
 #include <functional>
 #include <map>
 #include <mutex>
 #include <queue>
 #include <stdint.h>
+#include <thread>
 
 namespace idle {
 namespace concurrency {
@@ -16,6 +18,7 @@ public:
        bool isBackground)
       : id_(id), expire_time_(expireTime), func_(func),
         is_background_(isBackground) {}
+  void operator()() { func_(); }
 
 private:
   int64_t id_;
@@ -40,20 +43,22 @@ class Executor {
 public:
   Executor();
   ~Executor();
-  void Start();
+
+  void Submit(Task &&task);
 
 private:
-  using TaskQueue = std::priority_queue<Task>;
+  using TaskQueue = BlockingQueue<Task>;
   using TaskMap = std::map<int64_t, Task>;
 
   int32_t thread_num_;
   volatile int pending_num_;
   std::mutex mu_;
-  std::condition_variable cv_;
   bool stop_;
 
-  TaskQueue normal_;
-  TaskQueue background_;
+  TaskQueue *normal_;
+  // TaskQueue background_;
+
+  std::vector<std::thread> threads_;
 };
 } // namespace concurrency
 } // namespace idle

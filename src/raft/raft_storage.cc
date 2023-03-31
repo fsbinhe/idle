@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include <dirent.h>
+#include <folly/executors/GlobalExecutor.h>
 #include <glog/logging.h>
 #include <memory>
 #include <string>
@@ -39,6 +40,7 @@ void LogDB::Open(const std::string &path, const Option &option, LogDB **dbptr) {
     return;
   }
   db->executor_ = std::make_unique<concurrency::Executor>();
+
   db->WriteMarkerSnapshot();
   *dbptr = db;
   LOG(INFO) << "[raftd] Open ends";

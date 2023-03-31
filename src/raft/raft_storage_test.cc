@@ -14,6 +14,7 @@ TEST(RaftStorageTest, Basic) {
   ASSERT_TRUE(db != nullptr);
 
   db->Write(0, "hello world");
+  db->Write(1, "what is your name");
   // auto s = LogDB::DestroyDB("./testdb");
   // ASSERT_TRUE(s == kOK);
 }

@@ -19,11 +19,45 @@ find_package(leveldb CONFIG REQUIRED)
 find_package(folly CONFIG REQUIRED)
 find_package(proxygen CONFIG REQUIRED)
 find_package(zstd CONFIG REQUIRED)
+find_package(LLVM CONFIG REQUIRED)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+find_package(Clang CONFIG REQUIRED)
+message(STATUS "Found Clang" ${CLANG_INCLUDE_DIRS})
+
+include_directories(${LLVM_INCLUDE_DIRS})
+separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
 
 # Enable proto
 add_subdirectory(proto)
 add_subdirectory(client)
-add_subdirectory(src)
+add_subdirectory(src/common)
+add_subdirectory(src/concurrency)
+add_subdirectory(src/raft)
+add_subdirectory(src/linter)
+
+add_executable(linter src/linter/linter.cc)
+llvm_map_components_to_libnames(llvm_libs support core irreader option)
+target_include_directories(linter PRIVATE ${CLANG_INCLUDE_DIRS})
+target_link_directories(linter PRIVATE ${CLANG_LIBRARY_DIRS})
+target_link_libraries(linter PRIVATE 
+  LLVMCore
+  LLVMFrontendOpenMP
+  LLVMOption
+  LLVMTableGen
+  clangAST
+  clangASTMatchers
+  clangBasic
+  clangDriver
+  clangEdit
+  clangFrontend
+  clangLex
+  clangParse
+  clangSema
+  clangSerialization
+  clangTooling
+) 
 
 
 add_executable(asyncd src/asyncd.cc)

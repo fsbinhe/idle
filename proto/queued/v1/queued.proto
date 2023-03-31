@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package queued.v1;
+
+message Item {
+  string namespace = 1;
+  string metadata = 2;
+  bytes payload = 3;
+  int64 ttl = 4;
+  int32 max_retries = 5;
+}
+
+message EnqueueRequest {
+  string namespace = 1;
+  repeated Item item = 2;
+}
+message EnqueueResponse {
+  string id = 1;
+  uint32 status = 2;
+}
+
+message DequeueRequest {}
+message DequeueResponse {}
+
+message AckRequest {}
+message AckResponse {}
+
+// Queue is a distributed Priority Queue Service
+// APIs:
+//   - Enqueue: append one item in the queue
+//   - Dequeue: pop one item in the queue
+
+service Queue {
+  rpc Enqueue(EnqueueRequest) returns (EnqueueResponse) {}
+
+  rpc Dequeue(DequeueRequest) returns (DequeueResponse) {}
+
+  rpc Ack(AckRequest) returns (AckResponse) {}
+}

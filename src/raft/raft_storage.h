@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "../concurrency/executor.h"
+#include <folly/executors/GlobalExecutor.h>
 
 namespace idle {
 namespace distributed {
